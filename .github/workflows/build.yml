@@ -52,9 +52,7 @@ jobs:
             patchelf \
             build-essential \
             curl \
-            wget \
-            javascriptcoregtk-4.1 \
-            soupwrapper
+            wget
 
       - name: Install frontend dependencies
         run: npm install
