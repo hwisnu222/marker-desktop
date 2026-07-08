@@ -64,20 +64,20 @@ impl BookmarkRepository{
 
     }
 
-    pub fn delete(&self, id: String) -> Result<String, Box<dyn Error>>{
-        let query = "DELETE FROM bookmark WHERE id=?1";
-
-        let db = self.repo.lock().map_err(|_| "failed lock database")?;
-
-        match db.execute(query, (id,)) {
-            Ok(_)=> {
-                Ok("success delete bookmark".to_string())
-            }
-            Err(e)=>{
-                error!("{}", e.to_string());
-                Err("failed delete bookmark".into())
-            }
-        }
-
-    }
+    // pub fn delete(&self, id: String) -> Result<String, Box<dyn Error>>{
+    //     let query = "DELETE FROM bookmark WHERE id=?1";
+    //
+    //     let db = self.repo.lock().map_err(|_| "failed lock database")?;
+    //
+    //     match db.execute(query, (id,)) {
+    //         Ok(_)=> {
+    //             Ok("success delete bookmark".to_string())
+    //         }
+    //         Err(e)=>{
+    //             error!("{}", e.to_string());
+    //             Err("failed delete bookmark".into())
+    //         }
+    //     }
+    //
+    // }
 }

@@ -1,6 +1,6 @@
 use tauri::Manager;
 
-use std::sync::{Arc, Mutex};
+use std::{fs, sync::{Arc, Mutex}};
 use rusqlite::Connection;
 use serde::{Serialize};
 
@@ -54,7 +54,15 @@ fn get_bookmarks(
 pub fn run() {
     tauri::Builder::default()
         .setup(|app|{
-            let conn = Connection::open("bookmark.db")?;
+
+            let mut path = dirs::config_dir().expect("failed get config directory");
+            path.push("marker-desktop");
+            if !path.exists(){
+                fs::create_dir_all(&path).expect("failed create config directory");
+            }
+            path.push("app.db");
+            let path_db = path.to_str().unwrap();
+            let conn = Connection::open(path_db)?;
 
             let sql = "CREATE TABLE IF NOT EXISTS bookmark (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
