@@ -1,0 +1,84 @@
+use tauri::Manager;
+
+use std::sync::{Arc, Mutex};
+use rusqlite::Connection;
+use serde::{Serialize};
+
+use crate::jsonrpc::repository::{Bookmark, BookmarkRepository};
+
+
+mod jsonrpc;
+
+#[derive(Serialize)]
+pub struct PaginationResponse{
+    data: Vec<Bookmark>,
+    total_count: i64,
+    total_page: i64
+}
+
+// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/ 
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[tauri::command]
+fn get_bookmarks(
+    repo: tauri::State<'_, BookmarkRepository>,
+    search: Option<String>,
+    page: Option<i64>,
+    per_page: Option<i64>,
+    sort: Option<String>
+) -> Result<PaginationResponse, String>{
+
+    println!("get bookmarks");
+    match repo.get(search, page, per_page, sort){
+        Ok(data) => {
+
+            println!("success get data");
+            Ok(PaginationResponse{
+                data,
+                total_count: 12,
+                total_page: 13
+            })
+        }
+        Err(e) =>{
+            eprintln!("Error: {}", e);
+            Err(format!("Error: {}", e))
+        }
+    }    
+}
+
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .setup(|app|{
+            let conn = Connection::open("bookmark.db")?;
+
+            let sql = "CREATE TABLE IF NOT EXISTS bookmark (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                url TEXT UNIQUE,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )";
+            let _ = conn.execute(sql, ());
+
+            let shared_conn = Arc::new(Mutex::new(conn));
+            let bookmark_repository = BookmarkRepository{
+                repo: shared_conn
+            };
+
+            app.manage(bookmark_repository.clone());
+
+            tauri::async_runtime::spawn(async move{
+                let _ = jsonrpc::server::run(bookmark_repository).await;
+            });
+            Ok(())
+        })
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![greet, get_bookmarks])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
