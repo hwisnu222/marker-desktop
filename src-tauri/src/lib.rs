@@ -2,11 +2,9 @@ use tauri::Manager;
 
 use std::{fs, sync::{Arc, Mutex}};
 use rusqlite::Connection;
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
 
 use crate::jsonrpc::repository::{Bookmark, BookmarkRepository};
-
-
 mod jsonrpc;
 
 #[derive(Serialize)]
@@ -16,24 +14,34 @@ pub struct PaginationResponse{
     total_page: i64
 }
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/ 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-#[tauri::command]
-fn get_bookmarks(
-    repo: tauri::State<'_, BookmarkRepository>,
+#[derive(Serialize, Deserialize)]
+struct BookmarkRequest{
     search: Option<String>,
     page: Option<i64>,
     per_page: Option<i64>,
     sort: Option<String>
+}
+
+#[derive(Deserialize)]
+struct DeleteParams{
+    id: Option<i64>
+}
+
+// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/ 
+#[tauri::command]
+fn get_bookmarks(
+    repo: tauri::State<'_, BookmarkRepository>,
+    params: BookmarkRequest
 ) -> Result<PaginationResponse, String>{
+    let search = params.search;
+    let page = params.page;
+    let per_page = params.per_page;
+    let sort = params.sort;
 
     println!("get bookmarks");
     match repo.get(search, page, per_page, sort){
         Ok(data) => {
+            println!("{:?}", data);
 
             println!("success get data");
             Ok(PaginationResponse{
@@ -47,6 +55,22 @@ fn get_bookmarks(
             Err(format!("Error: {}", e))
         }
     }    
+}
+
+#[tauri::command]
+fn delete_bookmark(repo: tauri::State<'_, BookmarkRepository>, params: DeleteParams)-> Result<String, String>{
+    let id =  params.id.ok_or("can't empty id")?;
+
+    match repo.delete(id){
+        Ok(data)=>{
+            println!("{}", data);
+            Ok("success delete Bookmark".to_string())
+        }
+        Err(e)=>{
+            eprintln!("{}", e);
+            Err("failed delete bookmark".to_string())
+        }
+    }
 }
 
 
@@ -86,7 +110,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, get_bookmarks])
+        .invoke_handler(tauri::generate_handler![get_bookmarks, delete_bookmark])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

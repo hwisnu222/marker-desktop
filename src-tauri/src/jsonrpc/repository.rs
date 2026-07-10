@@ -22,11 +22,13 @@ impl BookmarkRepository{
     pub fn get(&self, search: Option<String>, page: Option<i64>, limit: Option<i64>, sort: Option<String>) -> Result<Vec<Bookmark>, Box<dyn Error>> {
         // let mut bookmarks = Vec::new();
         let search_query = format!("%{}%", search.unwrap_or_default());
-        let current_page = page.unwrap_or(0);
         let limit_row = limit.unwrap_or(10);
+        let current_page = page.unwrap_or(0);
         let sort_type = sort.unwrap_or("desc".to_string()).to_uppercase();
+        println!("search: {}", search_query);
 
         let query = format!("SELECT * FROM bookmark WHERE title LIKE ?1 OR url LIKE ?1 ORDER BY created_at {} LIMIT ?2 OFFSET ?3", sort_type);
+        println!("{}", query);
 
         let db = self.repo.lock().map_err(|_| "failed lock db to process")?;
 
@@ -64,20 +66,20 @@ impl BookmarkRepository{
 
     }
 
-    // pub fn delete(&self, id: String) -> Result<String, Box<dyn Error>>{
-    //     let query = "DELETE FROM bookmark WHERE id=?1";
-    //
-    //     let db = self.repo.lock().map_err(|_| "failed lock database")?;
-    //
-    //     match db.execute(query, (id,)) {
-    //         Ok(_)=> {
-    //             Ok("success delete bookmark".to_string())
-    //         }
-    //         Err(e)=>{
-    //             error!("{}", e.to_string());
-    //             Err("failed delete bookmark".into())
-    //         }
-    //     }
-    //
-    // }
+    pub fn delete(&self, id: i64) -> Result<String, Box<dyn Error>>{
+        let query = "DELETE FROM bookmark WHERE id=?1";
+
+        let db = self.repo.lock().map_err(|_| "failed lock database")?;
+
+        match db.execute(query, (id,)) {
+            Ok(_)=> {
+                Ok("success delete bookmark".to_string())
+            }
+            Err(e)=>{
+                error!("{}", e.to_string());
+                Err("failed delete bookmark".into())
+            }
+        }
+
+    }
 }

@@ -3,18 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 import {
-  FolderRegular,
-  EditRegular,
-  OpenRegular,
-  DocumentRegular,
-  PeopleRegular,
-  DocumentPdfRegular,
-  VideoRegular,
   Delete12Filled,
-  ArrowExport16Filled,
   Copy16Filled,
   SearchRegular,
-  MoreHorizontal20Regular,
   ArrowNextRegular,
   ArrowPreviousRegular,
 } from "@fluentui/react-icons";
@@ -26,11 +17,8 @@ import {
   TableHeader,
   TableHeaderCell,
   TableCellLayout,
-  Avatar,
   Input,
   Button,
-  Divider,
-  TableCellActions,
   Card,
   Dialog,
   DialogTrigger,
@@ -42,25 +30,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@fluentui/react-components";
-import { Delete, Search, SortAscIcon, SortDescIcon } from "lucide-react";
-const items = [
-  {
-    title: "Components / Button / Button - Docs ⋅ Storybook",
-    url: "https://storybooks.fluentui.dev/react/?path=/docs/components-button-button--docs&globals=storybook_fluentui-react-addon_theme:teams-dark-v21",
-    created_at: new Date().toLocaleString(),
-  },
-  {
-    title: "Components / Button / Button - Docs ⋅ Storybook",
-    url: "https://storybooks.fluentui.dev/react/?path=/docs/components-button-button--docs&globals=storybook_fluentui-react-addon_theme:teams-dark-v21",
-    created_at: new Date().toLocaleString(),
-  },
-  {
-    title: "Components / Button / Button - Docs ⋅ Storybook",
-    url: "https://storybooks.fluentui.dev/react/?path=/docs/components-button-button--docs&globals=storybook_fluentui-react-addon_theme:teams-dark-v21",
-    created_at: new Date().toLocaleString(),
-  },
-];
-
+import { SortAscIcon, SortDescIcon } from "lucide-react";
 const columns = [
   { columnKey: "url", label: "Url", className: "w-full" },
   { columnKey: "created_at", label: "Created at", className: "w-62" },
@@ -68,6 +38,7 @@ const columns = [
 ];
 
 function App() {
+  const [isOpenModal, setIsOpenModal] = useState(false);
   const [bookmarks, setBookmark] = useState([]);
   const [filter, setFilter] = useState({
     search: "",
@@ -75,21 +46,15 @@ function App() {
     page: 1,
     per_page: 10,
   });
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-  const [value, setValue] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
 
   const getBookmarks = async () => {
     const res = await invoke("get_bookmarks", {
-      search: filter.search,
-      per_page: filter.per_page,
-      page: filter.page,
-      sort: filter.sort,
+      params: {
+        search: filter.search,
+        per_page: filter.per_page,
+        page: filter.page,
+        sort: filter.sort,
+      },
     });
     setBookmark(res?.data);
     console.log(res?.data);
@@ -113,6 +78,23 @@ function App() {
 
   const handleGetBookmark = async () => {
     getBookmarks();
+  };
+
+  const handleDelete = (id) => {
+    const res = invoke("delete_bookmark", {
+      params: {
+        id,
+      },
+    });
+
+    console.log(res);
+
+    getBookmarks();
+    setIsOpenModal(false);
+  };
+
+  const handleOpenModal = () => {
+    setIsOpenModal((prev) => !prev);
   };
 
   useEffect(() => {
@@ -186,15 +168,15 @@ function App() {
                   </TableCell>
                   <TableCell>{item.created_at}</TableCell>
                   <TableCell>
-                    {/* <Button icon={<Delete12Filled />}>Delete</Button> */}
-                    {/* <TableCellActions> */}
                     <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger disableButtonEnhancement>
-                          <Button icon={<Delete12Filled />} appearance="subtle">
-                            Delete
-                          </Button>
-                        </DialogTrigger>
+                      <Dialog open={isOpenModal}>
+                        <Button
+                          icon={<Delete12Filled />}
+                          appearance="subtle"
+                          onClick={handleOpenModal}
+                        >
+                          Delete
+                        </Button>
                         <DialogSurface>
                           <DialogBody>
                             <DialogTitle>Delete Bookmark?</DialogTitle>
@@ -203,10 +185,18 @@ function App() {
                               can't undo
                             </DialogContent>
                             <DialogActions>
-                              <Button appearance="primary">Do Something</Button>
-                              <DialogTrigger disableButtonEnhancement>
-                                <Button appearance="secondary">Close</Button>
-                              </DialogTrigger>
+                              <Button
+                                appearance="primary"
+                                onClick={() => handleDelete(item.id)}
+                              >
+                                Delete
+                              </Button>
+                              <Button
+                                appearance="secondary"
+                                onClick={handleOpenModal}
+                              >
+                                Close
+                              </Button>
                             </DialogActions>
                           </DialogBody>
                         </DialogSurface>
@@ -215,13 +205,16 @@ function App() {
                         Copy
                       </Button>
                     </div>
-
-                    {/* </TableCellActions> */}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          {!bookmarks.length && (
+            <div className="flex justify-center items-center h-96">
+              <p className="text-gray-600">You don't have bookmark yet</p>
+            </div>
+          )}
           <CardFooter
             action={
               <div>
@@ -237,28 +230,9 @@ function App() {
                 />
               </div>
             }
-          >
-            {/* <Button icon={<ArrowReply16Regular />}>Reply</Button> */}
-            {/* <Button icon={<Share16Regular />}>Share</Button> */}
-          </CardFooter>
+          ></CardFooter>
         </Card>
       </div>
-
-      {/* <form */}
-      {/*   className="row" */}
-      {/*   onSubmit={(e) => { */}
-      {/*     e.preventDefault(); */}
-      {/*     greet(); */}
-      {/*   }} */}
-      {/* > */}
-      {/*   <input */}
-      {/*     id="greet-input" */}
-      {/*     onChange={(e) => setName(e.currentTarget.value)} */}
-      {/*     placeholder="Enter a name..." */}
-      {/*   /> */}
-      {/*   <button type="submit">Greet</button> */}
-      {/* </form> */}
-      {/* <p>{greetMsg}</p> */}
     </main>
   );
 }
